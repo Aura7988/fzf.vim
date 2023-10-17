@@ -1072,11 +1072,7 @@ function! s:conf(name, default)
 endfunction
 
 function! s:defs(commands)
-  let prefix = s:conf('command_prefix', '')
-  if prefix =~# '^[^A-Z]'
-    echoerr 'g:fzf_command_prefix must start with an uppercase letter'
-    return
-  endif
+  let prefix = 'KK'
   for command in a:commands
     let name = ':'.prefix.matchstr(command, '\C[A-Z]\S\+')
     if 2 != exists(name)
