@@ -830,9 +830,9 @@ function! fzf#vim#buffers(...)
 endfunction
 
 " ------------------------------------------------------------------
-" Ag / Rg
+" Ripgrep
 " ------------------------------------------------------------------
-function! s:ag_to_qf(line)
+function! s:rg_to_qf(line)
   let parts = matchlist(a:line, '\(.\{-}\)\s*:\s*\(\d\+\)\%(\s*:\s*\(\d\+\)\)\?\%(\s*:\(.*\)\)\?')
   let dict = {'filename': &acd ? fnamemodify(parts[1], ':p') : parts[1], 'lnum': parts[2], 'text': parts[4]}
   if len(parts[3])
@@ -841,12 +841,12 @@ function! s:ag_to_qf(line)
   return dict
 endfunction
 
-function! s:ag_handler(name, lines)
+function! s:rg_handler(name, lines)
   if len(a:lines) < 2
     return
   endif
 
-  let list = map(filter(a:lines[1:], 'len(v:val)'), 's:ag_to_qf(v:val)')
+  let list = map(filter(a:lines[1:], 'len(v:val)'), 's:rg_to_qf(v:val)')
   if empty(list)
     return
   endif
@@ -868,88 +868,26 @@ function! s:ag_handler(name, lines)
   endtry
 endfunction
 
-" query, [ag options], [spec (dict)], [fullscreen (bool)]
-function! fzf#vim#ag(query, ...)
-  if type(a:query) != s:TYPE.string
-    return s:warn('Invalid query argument')
-  endif
-  let query = empty(a:query) ? '^(?=.)' : a:query
+function! fzf#vim#ripgrep(query, ...)
   let args = copy(a:000)
-  let ag_opts = len(args) > 1 && type(args[0]) == s:TYPE.string ? remove(args, 0) : ''
-  let command = ag_opts . ' -- ' . fzf#shellescape(query)
-  return call('fzf#vim#ag_raw', insert(args, command, 0))
-endfunction
-
-" ag command suffix, [spec (dict)], [fullscreen (bool)]
-function! fzf#vim#ag_raw(command_suffix, ...)
-  if !executable('ag')
-    return s:warn('ag is not found')
-  endif
-  return call('fzf#vim#grep', extend(['ag --nogroup --column --color '.a:command_suffix, 1], a:000))
-endfunction
-
-" command (string), [spec (dict)], [fullscreen (bool)]
-function! fzf#vim#grep(grep_command, ...)
-  let args = copy(a:000)
-  let words = []
-  for word in split(a:grep_command)
-    if word !~# '^[a-z]'
-      break
-    endif
-    call add(words, word)
-  endfor
-  let words   = empty(words) ? ['grep'] : words
-  let name    = join(words, '-')
-  let capname = join(map(words, 'toupper(v:val[0]).v:val[1:]'), '')
+  let cmd = 'rg --column --line-number --with-filename --no-heading --color=always --smart-case '
+  let name = 'Rg'
   let opts = {
-  \ 'options': ['--ansi', '--prompt', capname.'> ',
-  \             '--multi', '--bind', 'alt-a:select-all,alt-d:deselect-all',
-  \             '--delimiter', ':', '--preview-window', '+{2}-/2']
-  \}
-  if len(args) && type(args[0]) == s:TYPE.bool
-    call remove(args, 0)
-  endif
-
-  function! opts.sink(lines) closure
-    return s:ag_handler(get(opts, 'name', name), a:lines)
-  endfunction
-  let opts['sink*'] = remove(opts, 'sink')
-  try
-    let prev_default_command = $FZF_DEFAULT_COMMAND
-    let $FZF_DEFAULT_COMMAND = a:grep_command
-    return s:fzf(name, opts, args)
-  finally
-    let $FZF_DEFAULT_COMMAND = prev_default_command
-  endtry
-endfunction
-
-
-" command_prefix (string), initial_query (string), [spec (dict)], [fullscreen (bool)]
-function! fzf#vim#grep2(command_prefix, query, ...)
-  let args = copy(a:000)
-  let words = []
-  for word in split(a:command_prefix)
-    if word !~# '^[a-z]'
-      break
-    endif
-    call add(words, word)
-  endfor
-  let words = empty(words) ? ['grep'] : words
-  let name = join(words, '-')
-  let opts = {
-  \ 'source': ':',
-  \ 'options': ['--ansi', '--prompt', toupper(name).'> ', '--query', a:query,
-  \             '--disabled',
-  \             '--bind', 'start:reload:'.a:command_prefix.' '.fzf#shellescape(a:query),
-  \             '--bind', 'change:reload:'.a:command_prefix.' {q} || :',
-  \             '--multi', '--bind', 'alt-a:select-all,alt-d:deselect-all',
-  \             '--delimiter', ':', '--preview-window', '+{2}-/2']
+  \ 'source':  cmd.fzf#shellescape(a:query),
+  \ 'dir':     s:get_git_root(''),
+  \ 'options': ['--ansi', '--multi', '--prompt', 'Fzf> ',
+  \    '--header= '.s:red(' CTRL-G').' (Ripgrep mode) '.s:red(' CTRL-R').' (Fzf mode)',
+  \    '--bind=start:unbind(change,ctrl-r)',
+  \    '--bind=change:reload(sleep 0.1; '.cmd.'{q} || :)',
+  \    '--bind=ctrl-r:unbind(change,ctrl-r)+change-prompt(Fzf> )+enable-search+clear-query+rebind(ctrl-g)',
+  \    '--bind=ctrl-g:unbind(ctrl-g)+change-prompt(Ripgrep> )+disable-search+reload('.cmd.'{q} || :)+rebind(change,ctrl-r)',
+  \    '--delimiter=:', '--preview-window=+{2}-/2']
   \}
   if len(args) && type(args[0]) == s:TYPE.bool
     call remove(args, 0)
   endif
   function! opts.sink(lines) closure
-    return s:ag_handler(name, a:lines)
+    return s:rg_handler(name, a:lines)
   endfunction
   let opts['sink*'] = remove(opts, 'sink')
   return s:fzf(name, opts, args)
