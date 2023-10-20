@@ -1090,7 +1090,7 @@ call s:defs([
 \'command!      -bang -nargs=* BLines                           call fzf#vim#buffer_lines(<q-args>, <bang>0)',
 \'command! -bar -bang Colors                                    call fzf#vim#colors(<bang>0)',
 \'command!      -bang -nargs=+ -complete=dir Locate             call fzf#vim#locate(<q-args>, fzf#vim#with_preview(), <bang>0)',
-\'command!      -bang -nargs=* Rg                               call fzf#vim#ripgrep(<q-args>, fzf#vim#with_preview(), <bang>0)',
+\'command!      -bang -nargs=* -complete=file Rg                call fzf#vim#ripgrep(<q-args>, fzf#vim#with_preview(), <bang>0)',
 \'command!      -bang -nargs=* Tags                             call fzf#vim#tags(<q-args>, fzf#vim#with_preview({ "placeholder": "--tag {2}:{-1}:{3..}" }), <bang>0)',
 \'command!      -bang -nargs=* BTags                            call fzf#vim#buffer_tags(<q-args>, fzf#vim#with_preview({ "placeholder": "{2}:{3..}" }), <bang>0)',
 \'command! -bar -bang Snippets                                  call fzf#vim#snippets(<bang>0)',
