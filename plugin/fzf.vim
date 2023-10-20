@@ -1090,7 +1090,7 @@ call s:defs([
 \'command!      -bang -nargs=* BLines                           call fzf#vim#buffer_lines(<q-args>, <bang>0)',
 \'command! -bar -bang Colors                                    call fzf#vim#colors(<bang>0)',
 \'command!      -bang -nargs=+ -complete=dir Locate             call fzf#vim#locate(<q-args>, fzf#vim#with_preview(), <bang>0)',
-\'command!      -bang -nargs=* -complete=file Rg                call fzf#vim#ripgrep(<q-args>, fzf#vim#with_preview(), <bang>0)',
+\'command!      -bang -nargs=* -complete=custom,s:rgcomplete Rg call fzf#vim#ripgrep(<q-args>, fzf#vim#with_preview(), <bang>0)',
 \'command!      -bang -nargs=* Tags                             call fzf#vim#tags(<q-args>, fzf#vim#with_preview({ "placeholder": "--tag {2}:{-1}:{3..}" }), <bang>0)',
 \'command!      -bang -nargs=* BTags                            call fzf#vim#buffer_tags(<q-args>, fzf#vim#with_preview({ "placeholder": "{2}:{3..}" }), <bang>0)',
 \'command! -bar -bang Snippets                                  call fzf#vim#snippets(<bang>0)',
@@ -1105,6 +1105,21 @@ call s:defs([
 \'command! -bar -bang Maps                                      call fzf#vim#maps("n", <bang>0)',
 \'command! -bar -bang Filetypes                                 call fzf#vim#filetypes(<bang>0)',
 \'command!      -bang -nargs=* History                          call s:history(<q-args>, fzf#vim#with_preview(), <bang>0)'])
+
+function s:rgcomplete(A, L, P)
+  let cmd = 'fd -d1 '
+  if len(a:A)
+    let n = strridx(a:A, '/')
+    if a:A[n+1] == '.' | let cmd .= '-H ' | endif
+    if n == -1
+      let cmd .= a:A
+    else
+      let dir = a:A[:n]
+      let cmd = 'cd '.dir.' && '.cmd.a:A[n+1:].' | sed "s:^:'.dir.':"'
+    endif
+  endif
+  return system(cmd)
+endfunction
 
 function! s:history(arg, extra, bang)
   let bang = a:bang || a:arg[len(a:arg)-1] == '!'
