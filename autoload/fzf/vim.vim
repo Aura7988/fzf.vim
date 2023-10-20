@@ -617,7 +617,7 @@ function! s:history_source(type)
   endif
   let fmt = s:yellow(' %'.len(string(max)).'d ', 'Number')
   let list = filter(map(range(1, max), 'histget(a:type, - v:val)'), '!empty(v:val)')
-  return extend([' :: Press '.s:magenta('CTRL-E', 'Special').' to edit'],
+  return extend([s:red(' CTRL-R').' to re-edit'],
     \ map(list, 'printf(fmt, len(list) - v:key)." ".v:val'))
 endfunction
 
@@ -633,7 +633,7 @@ function! s:history_sink(type, lines)
   let prefix = "\<plug>(-fzf-".a:type.')'
   let key  = a:lines[0]
   let item = matchstr(a:lines[1], ' *[0-9]\+ *\zs.*')
-  if key == 'ctrl-e'
+  if key == 'ctrl-r'
     call histadd(a:type, item)
     redraw
     call feedkeys(a:type."\<up>", 'n')
@@ -654,7 +654,7 @@ function! fzf#vim#command_history(...)
   return s:fzf('history-command', {
   \ 'source':  s:history_source(':'),
   \ 'sink*':   s:function('s:cmd_history_sink'),
-  \ 'options': '+m --ansi --prompt="Hist:> " --header-lines=1 --expect=ctrl-e --tiebreak=index'}, a:000)
+  \ 'options': '+m --ansi --prompt="Hist:> " --header-lines=1 --expect=ctrl-r --tiebreak=index'}, a:000)
 endfunction
 
 function! s:search_history_sink(lines)
@@ -665,7 +665,7 @@ function! fzf#vim#search_history(...)
   return s:fzf('history-search', {
   \ 'source':  s:history_source('/'),
   \ 'sink*':   s:function('s:search_history_sink'),
-  \ 'options': '+m --ansi --prompt="Hist/> " --header-lines=1 --expect=ctrl-e --tiebreak=index'}, a:000)
+  \ 'options': '+m --ansi --prompt="Hist/> " --header-lines=1 --expect=ctrl-r --tiebreak=index'}, a:000)
 endfunction
 
 function! fzf#vim#history(...)
@@ -1364,12 +1364,12 @@ function! s:commits_sink(lines)
 
   let pat = '[0-9a-f]\{7,40}'
 
-  if a:lines[0] == 'ctrl-y'
+  if a:lines[0] == 'ctrl-r'
     let hashes = join(filter(map(a:lines[1:], 'matchstr(v:val, pat)'), 'len(v:val)'))
     return s:yank_to_register(hashes)
   end
 
-  let diff = a:lines[0] == 'ctrl-d'
+  let diff = a:lines[0] == 'ctrl-o'
   let Cmd = get(get(g:, 'fzf_action', s:default_action), a:lines[0], '')
   let cmd = type(Cmd) == s:TYPE.string ? Cmd : ''
 
@@ -1427,14 +1427,14 @@ function! s:commits(range, buffer_local, args)
   \ 'source':  source,
   \ 'sink*':   s:function('s:commits_sink'),
   \ 'options': s:reverse_list(['--ansi', '--multi', '--tiebreak=index',
-  \   '--inline-info', '--prompt', command.'> ', '--bind=ctrl-s:toggle-sort',
-  \   '--header', ':: Press '.s:magenta('CTRL-S', 'Special').' to toggle sort, '.s:magenta('CTRL-Y', 'Special').' to yank commit hashes',
-  \   '--expect=ctrl-y,'.expect_keys])
+  \   '--inline-info', '--prompt', command.'> ',
+  \   '--header='.s:red(' CTRL-R').' to yank commit hashes',
+  \   '--expect=ctrl-r,'.expect_keys])
   \ }
 
   if a:buffer_local
-    let options.options[-2] .= ', '.s:magenta('CTRL-D', 'Special').' to diff'
-    let options.options[-1] .= ',ctrl-d'
+    let options.options[-2] .= s:red('  CTRL-O').' to diff'
+    let options.options[-1] .= ',ctrl-o'
   endif
 
   if !s:is_win && &columns > s:wide
