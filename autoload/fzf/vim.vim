@@ -873,10 +873,10 @@ function! fzf#vim#ripgrep(query, ...)
   let cmd = 'rg --column --line-number --with-filename --no-heading --color=always --smart-case '
   let name = 'Rg'
   let opts = {
-  \ 'source':  cmd.fzf#shellescape(a:query),
+  \ 'source':  cmd . (empty(a:query) ? "''" : a:query),
   \ 'dir':     s:get_git_root(''),
-  \ 'options': ['--ansi', '--multi', '--prompt', 'Fzf> ',
-  \    '--header= '.s:red(' CTRL-G').' (Ripgrep mode) '.s:red(' CTRL-R').' (Fzf mode)',
+  \ 'options': ['--ansi', '--multi', '--prompt=Fzf> ',
+  \    '--header='.s:red(' CTRL-G').' (Ripgrep mode) '.s:red(' CTRL-R').' (Fzf mode)',
   \    '--bind=start:unbind(change,ctrl-r)',
   \    '--bind=change:reload(sleep 0.1; '.cmd.'{q} || :)',
   \    '--bind=ctrl-r:unbind(change,ctrl-r)+change-prompt(Fzf> )+enable-search+clear-query+rebind(ctrl-g)',
