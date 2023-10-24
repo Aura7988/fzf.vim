@@ -170,15 +170,7 @@ function! fzf#vim#with_preview(...)
   let placeholder = get(spec, 'placeholder', '{}')
 
   " g:fzf_preview_window
-  if empty(args)
-    let preview_args = s:conf('preview_window', ['', 'ctrl-/'])
-    if empty(preview_args)
-      let args = ['hidden']
-    else
-      " For backward-compatiblity
-      let args = type(preview_args) == type('') ? [preview_args] : copy(preview_args)
-    endif
-  endif
+  if empty(args) | let args = ['right,77%,border-left,wrap,hidden,<120(up,33%,border-bottom,hidden)'] | endif
 
   if len(args) && type(args[0]) == s:TYPE.string
     if len(args[0]) && args[0] !~# '^\(up\|down\|left\|right\|hidden\)'
@@ -208,9 +200,6 @@ function! fzf#vim#with_preview(...)
     let preview += ['--no-unicode']
   end
 
-  if len(args)
-    call extend(preview, ['--bind', join(map(args, 'v:val.":toggle-preview"'), ',')])
-  endif
   call s:merge_opts(spec, preview)
   return spec
 endfunction
