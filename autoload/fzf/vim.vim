@@ -432,8 +432,8 @@ endfunction
 " ------------------------------------------------------------------
 " Files
 " ------------------------------------------------------------------
-function! s:shortpath()
-  let short = fnamemodify(getcwd(), ':~:.')
+function! s:shortpath(path)
+  let short = fnamemodify(a:path, ':~:.')
   if !has('win32unix')
     let short = pathshorten(short)
   endif
@@ -443,19 +443,16 @@ endfunction
 
 function! fzf#vim#files(dir, ...)
   let args = {}
-  if !empty(a:dir)
-    if !isdirectory(expand(a:dir))
-      return s:warn('Invalid directory')
-    endif
-    let slash = (s:is_win && !&shellslash) ? '\\' : '/'
-    let dir = substitute(a:dir, '[/\\]*$', slash, '')
-    let args.dir = dir
-  else
-    let dir = s:shortpath()
+  let root = a:dir
+  if empty(a:dir)
+    let root = s:get_git_root('')
+    if empty(root) | let root = getcwd() | endif
+  elseif !isdirectory(expand(a:dir))
+    return s:warn('Invalid directory')
   endif
-
+  let dir = s:shortpath(root)
+  let args.dir = root
   let args.options = ['-m', '--prompt', strwidth(dir) < &columns / 2 - 20 ? dir : '> ']
-  call s:merge_opts(args, s:conf('files_options', []))
   return s:fzf('files', args, a:000)
 endfunction
 
