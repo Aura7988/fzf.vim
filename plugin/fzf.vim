@@ -1098,6 +1098,7 @@ call s:defs([
 \'command! -bar -bang Jumps                                     call fzf#vim#jumps(<bang>0)',
 \'command! -bar -bang Marks                                     call fzf#vim#marks(<bang>0)',
 \'command! -bar -bang Changes                                   call fzf#vim#changes(<bang>0)',
+\'command!      -bang Registers                                 call fzf#vim#registers(<bang>0)',
 \'command! -bar -bang Helptags                                  call fzf#vim#helptags(fzf#vim#with_preview({ "placeholder": "--tag {2}:{3}:{4}" }), <bang>0)',
 \'command! -bar -bang Windows                                   call fzf#vim#windows(fzf#vim#with_preview({ "placeholder": "{2}" }), <bang>0)',
 \'command! -bar -bang -nargs=* -range=% -complete=file Commits  let b:fzf_winview = winsaveview() | <line1>,<line2>call fzf#vim#commits(<q-args>, fzf#vim#with_preview({ "placeholder": "" }), <bang>0)',

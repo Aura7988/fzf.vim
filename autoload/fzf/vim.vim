@@ -1220,6 +1220,54 @@ function! fzf#vim#marks(...)
 endfunction
 
 " ------------------------------------------------------------------
+" Registers
+" ------------------------------------------------------------------
+function! s:format_register(line)
+  " Type Name Content
+  "   c  ""   xxx
+  return substitute(a:line, '^.\{7}', '\=s:yellow(submatch(0)[-1:])', '')
+endfunction
+
+function! s:register_sink(lines)
+  if len(a:lines) < 2
+    return
+  endif
+  let actions = {
+  \ ''         : 'p',
+  \ 'ctrl-g'   : 'P',
+  \ 'alt-enter': 'put ',
+  \ 'alt-g'    : 'put! ',
+  \ 'alt-e'    : 'normal @'
+  \}
+  let key = a:lines[0]
+  for line in a:lines[1:]
+    if key[0:2] == 'alt'
+      execute get(actions, key) . line[0]
+    else
+      execute 'normal "' . line[0] . get(actions, key)
+    endif
+  endfor
+endfunction
+
+function! fzf#vim#registers(...)
+  let oc = &columns
+  let &columns = 9999
+  redir => cout
+  silent registers
+  redir END
+  let &columns = oc
+  let opts = {
+  \ 'source':  map(split(cout, "\n")[1:], 's:format_register(v:val)'),
+  \ 'sink*':   s:function('s:register_sink'),
+  \ 'options': ['--ansi', '--multi', '--prompt=Registers> ',
+  \    '--header='.s:red(' CTRL-G(ALT-G) ╱ Enter(ALT-Enter)').' to put before/after (linewise) '.s:red(' ALT-E').' to execute',
+  \    '--expect=ctrl-g,alt-g,alt-enter,alt-e', '--preview', 'sed "s/^....//;s/\^J/\\n/g" <<< {}',
+  \    '--preview-window=up,23%,border-down']
+  \}
+  return s:fzf('registers', opts, a:000)
+endfunction
+
+" ------------------------------------------------------------------
 " Jumps
 " ------------------------------------------------------------------
 function! s:jump_format(line)
