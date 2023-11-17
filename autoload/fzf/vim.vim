@@ -603,8 +603,7 @@ function! s:history_source(type)
   endif
   let fmt = s:yellow(' %'.len(string(max)).'d ', 'Number')
   let list = filter(map(range(1, max), 'histget(a:type, - v:val)'), '!empty(v:val)')
-  return extend([s:red(' CTRL-R').' to re-edit'],
-    \ map(list, 'printf(fmt, len(list) - v:key)." ".v:val'))
+  return map(list, 'printf(fmt, len(list) - v:key)." ".v:val')
 endfunction
 
 nnoremap <plug>(-fzf-vim-do) :execute g:__fzf_command<cr>
@@ -613,6 +612,13 @@ nnoremap <plug>(-fzf-:) :
 
 function! s:history_sink(type, lines)
   if len(a:lines) < 2
+    let query = a:lines[0]
+    if len(query) && query != 'ctrl-r'
+      tab terminal
+      call feedkeys('i', 'n')
+      sleep 100m
+      call feedkeys(query."\<CR>", 'n')
+    endif
     return
   endif
 
@@ -640,7 +646,7 @@ function! fzf#vim#command_history(...)
   return s:fzf('history-command', {
   \ 'source':  s:history_source(':'),
   \ 'sink*':   s:function('s:cmd_history_sink'),
-  \ 'options': '+m --ansi --prompt="Hist:> " --header-lines=1 --expect=ctrl-r --tiebreak=index'}, a:000)
+  \ 'options': '+m --ansi --prompt="Hist:> " --header="'.s:red(' CTRL-R').' to re-edit '.s:red(' ALT-E').' to execute in terminal" --bind=alt-e:print-query --expect=ctrl-r --tiebreak=index'}, a:000)
 endfunction
 
 function! s:search_history_sink(lines)
@@ -651,7 +657,7 @@ function! fzf#vim#search_history(...)
   return s:fzf('history-search', {
   \ 'source':  s:history_source('/'),
   \ 'sink*':   s:function('s:search_history_sink'),
-  \ 'options': '+m --ansi --prompt="Hist/> " --header-lines=1 --expect=ctrl-r --tiebreak=index'}, a:000)
+  \ 'options': '+m --ansi --prompt="Hist/> " --header="'.s:red(' CTRL-R').' to re-edit" --expect=ctrl-r --tiebreak=index'}, a:000)
 endfunction
 
 function! fzf#vim#history(...)
