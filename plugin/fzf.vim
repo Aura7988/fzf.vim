@@ -59,12 +59,9 @@ if s:is_win
     return iconv(a:str, &encoding, 'cp'.s:codepage)
   endfunction
   function! s:wrap_cmds(cmds)
-    return map([
-      \ '@echo off',
-      \ 'setlocal enabledelayedexpansion']
+    return map(['@echo off']
     \ + (has('gui_running') ? ['set TERM= > nul'] : [])
-    \ + (type(a:cmds) == type([]) ? a:cmds : [a:cmds])
-    \ + ['endlocal'],
+    \ + (type(a:cmds) == type([]) ? a:cmds : [a:cmds]),
     \ '<SID>enc_to_cp(v:val."\r")')
   endfunction
 else
@@ -84,11 +81,21 @@ else
 endif
 
 function! s:shellesc_cmd(arg)
-  let escaped = substitute(a:arg, '[&|<>()@^]', '^&', 'g')
-  let escaped = substitute(escaped, '%', '%%', 'g')
-  let escaped = substitute(escaped, '"', '\\^&', 'g')
-  let escaped = substitute(escaped, '\(\\\+\)\(\\^\)', '\1\1\2', 'g')
-  return '^"'.substitute(escaped, '\(\\\+\)$', '\1\1', '').'^"'
+  let e = '"'
+  let slashes = 0
+  for c in split(a:arg, '\zs')
+    if c ==# '\'
+      let slashes += 1
+    elseif c ==# '"'
+      let e .= repeat('\', slashes + 1)
+      let slashes = 0
+    else
+      let slashes = 0
+    endif
+    let e .= c
+  endfor
+  let e .= repeat('\', slashes) .'"'
+  return e
 endfunction
 
 function! fzf#shellescape(arg, ...)
