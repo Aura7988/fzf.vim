@@ -863,6 +863,7 @@ endfunction
 function! fzf#vim#ripgrep(query, ...)
   let args = copy(a:000)
   let cmd = 'rg --column --line-number --with-filename --no-heading --color=always --smart-case '
+  let fallback = s:is_win ? '' : ' || :'
   let name = 'Rg'
   let opts = {
   \ 'source':  cmd . (empty(a:query) ? "''" : a:query),
@@ -870,9 +871,9 @@ function! fzf#vim#ripgrep(query, ...)
   \ 'options': ['--ansi', '--multi', '--prompt=Fzf> ',
   \    '--header='.s:red(' CTRL-G').' (Ripgrep mode) '.s:red(' CTRL-R').' (Fzf mode)',
   \    '--bind=start:unbind(change,ctrl-r)',
-  \    '--bind=change:reload(sleep 0.1; '.cmd.'{q} || :)',
+  \    '--bind=change:reload(sleep 0.1; '.cmd.'{q}'.fallback.')',
   \    '--bind=ctrl-r:unbind(change,ctrl-r)+change-prompt(Fzf> )+enable-search+clear-query+rebind(ctrl-g)',
-  \    '--bind=ctrl-g:unbind(ctrl-g)+change-prompt(Ripgrep> )+disable-search+reload('.cmd.'{q} || :)+rebind(change,ctrl-r)',
+  \    '--bind=ctrl-g:unbind(ctrl-g)+change-prompt(Ripgrep> )+disable-search+reload('.cmd.'{q}'.fallback.')+rebind(change,ctrl-r)',
   \    '--delimiter=:', '--preview-window=+{2}-/2']
   \}
   if len(args) && type(args[0]) == s:TYPE.bool
