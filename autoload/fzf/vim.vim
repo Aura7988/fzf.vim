@@ -869,11 +869,10 @@ function! fzf#vim#ripgrep(query, ...)
   \ 'source':  cmd . (empty(a:query) ? "''" : a:query),
   \ 'dir':     s:get_git_root(''),
   \ 'options': ['--ansi', '--multi', '--prompt=Fzf> ',
-  \    '--header='.s:red(' CTRL-G').' (Ripgrep mode) '.s:red(' CTRL-R').' (Fzf mode)',
-  \    '--bind=start:unbind(change,ctrl-r)',
-  \    '--bind=change:reload(sleep 0.1; '.cmd.'{q}'.fallback.')',
-  \    '--bind=ctrl-r:unbind(change,ctrl-r)+change-prompt(Fzf> )+enable-search+clear-query+rebind(ctrl-g)',
-  \    '--bind=ctrl-g:unbind(ctrl-g)+change-prompt(Ripgrep> )+disable-search+reload('.cmd.'{q}'.fallback.')+rebind(change,ctrl-r)',
+  \    '--header='.s:red(' CTRL-G').' to switch between Fzf/Ripgrep mode',
+  \    '--bind=start:unbind(change)',
+  \    '--bind=change:reload:sleep 0.1; '.cmd.'{q}'.fallback,
+  \    '--bind=ctrl-g:transform:[[ $FZF_PROMPT =~ Fzf ]] && echo "change-prompt(Ripgrep> )+disable-search+rebind(change)+reload:'.cmd.'{q}'.fallback.'" || echo "change-prompt(Fzf> )+enable-search+clear-query+unbind(change)"',
   \    '--delimiter=:', '--preview-window=+{2}-/2']
   \}
   if len(args) && type(args[0]) == s:TYPE.bool
