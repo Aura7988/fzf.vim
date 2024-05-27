@@ -441,6 +441,7 @@ function! fzf#vim#files(dir, ...)
     return s:warn('Invalid directory')
   endif
   let dir = s:shortpath(root)
+  let args.source = 'fd -HE .git -tf'
   let args.dir = root
   let args.options = ['-m', '--prompt', strwidth(dir) < &columns / 2 - 20 ? dir : '> ']
   return s:fzf('files', args, a:000)
@@ -668,76 +669,10 @@ function! fzf#vim#history(...)
   \}, a:000)
 endfunction
 
-" ------------------------------------------------------------------
-" GFiles[?]
-" ------------------------------------------------------------------
-
 function! s:get_git_root(dir)
   let dir = len(a:dir) ? a:dir : substitute(split(expand('%:p:h'), '[/\\]\.git\([/\\]\|$\)')[0], '^fugitive://', '', '')
   let root = systemlist('git -C ' . fzf#shellescape(dir) . ' rev-parse --show-toplevel')[0]
   return v:shell_error ? '' : (len(a:dir) ? fnamemodify(a:dir, ':p') : root)
-endfunction
-
-function! s:version_requirement(val, min)
-  for idx in range(0, len(a:min) - 1)
-    let v = get(a:val, idx, 0)
-    if     v < a:min[idx] | return 0
-    elseif v > a:min[idx] | return 1
-    endif
-  endfor
-  return 1
-endfunction
-
-function! s:git_version_requirement(...)
-  if !exists('s:git_version')
-    let s:git_version = map(split(split(system('git --version'))[2], '\.'), 'str2nr(v:val)')
-  endif
-  return s:version_requirement(s:git_version, a:000)
-endfunction
-
-function! fzf#vim#gitfiles(args, ...)
-  let dir = get(get(a:, 1, {}), 'dir', '')
-  let root = s:get_git_root(dir)
-  if empty(root)
-    return s:warn('Not in git repo')
-  endif
-  let prefix = 'git -C ' . fzf#shellescape(root) . ' '
-  if a:args != '?'
-    let source = prefix . 'ls-files -z ' . a:args
-    if s:git_version_requirement(2, 31)
-      let source .= ' --deduplicate'
-    endif
-    return s:fzf('gfiles', {
-    \ 'source':  source,
-    \ 'dir':     root,
-    \ 'options': '-m --read0 --prompt "GitFiles> "'
-    \}, a:000)
-  endif
-
-  " Here be dragons!
-  " We're trying to access the common sink function that fzf#wrap injects to
-  " the options dictionary.
-  let bar = s:is_win ? '^|' : '|'
-  let diff_prefix = 'git -C ' . s:escape_for_bash(root) . ' '
-  let preview = printf(
-    \ s:bash() . ' -c "if [[ {1} =~ M ]]; then %s; else %s {-1}; fi"',
-    \ executable('delta')
-      \ ? diff_prefix . 'diff -- {-1} ' . bar . ' delta --width $FZF_PREVIEW_COLUMNS --file-style=omit ' . bar . ' sed 1d'
-      \ : diff_prefix . 'diff --color=always -- {-1} ' . bar . ' sed 1,4d',
-    \ s:escape_for_bash(s:bin.preview))
-  let wrapped = fzf#wrap({
-  \ 'source':  prefix . '-c color.status=always status --short --untracked-files=all',
-  \ 'dir':     root,
-  \ 'options': ['--ansi', '--multi', '--nth', '2..,..', '--tiebreak=index', '--prompt', 'GitFiles?> ', '--preview', preview]
-  \})
-  call s:remove_layout(wrapped)
-  let wrapped.common_sink = remove(wrapped, 'sink*')
-  function! wrapped.newsink(lines)
-    let lines = extend(a:lines[0:0], map(a:lines[1:], 'substitute(v:val[3:], ".* -> ", "", "")'))
-    return self.common_sink(lines)
-  endfunction
-  let wrapped['sink*'] = remove(wrapped, 'newsink')
-  return s:fzf('gfiles-diff', wrapped, a:000)
 endfunction
 
 " ------------------------------------------------------------------
