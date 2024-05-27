@@ -332,18 +332,13 @@ function! s:fzf(name, opts, extra)
   return fzf#run(s:wrap(a:name, merged, bang))
 endfunction
 
-let s:default_action = {
-  \ 'ctrl-t': 'tab split',
-  \ 'ctrl-s': 'split',
-  \ 'ctrl-v': 'vsplit' }
-
 function! s:execute_silent(cmd)
   silent keepjumps keepalt execute a:cmd
 endfunction
 
 " [key, [filename, [stay_on_edit: 0]]]
 function! s:action_for(key, ...)
-  let Cmd = get(get(g:, 'fzf_action', s:default_action), a:key, '')
+  let Cmd = get(get(g:, 'default_action'), a:key, '')
   let cmd = type(Cmd) == s:TYPE.string ? Cmd : ''
 
   " See If the command is the default action that opens the selected file in
@@ -1353,7 +1348,7 @@ function! s:commits_sink(lines)
   end
 
   let diff = a:lines[0] == 'ctrl-o'
-  let Cmd = get(get(g:, 'fzf_action', s:default_action), a:lines[0], '')
+  let Cmd = get(get(g:, 'default_action'), a:lines[0], '')
   let cmd = type(Cmd) == s:TYPE.string ? Cmd : ''
 
   let buf = bufnr('')
@@ -1413,7 +1408,7 @@ function! s:commits(range, buffer_local, args)
     let command = 'Commits'
   endif
 
-  let expect_keys = join(keys(get(g:, 'fzf_action', s:default_action)), ',')
+  let expect_keys = join(keys(get(g:, 'default_action')), ',')
   let options = {
   \ 'source':  source,
   \ 'sink*':   s:function('s:commits_sink'),

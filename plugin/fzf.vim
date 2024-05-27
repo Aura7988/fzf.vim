@@ -433,7 +433,7 @@ function! fzf#wrap(...)
 
   " Action: g:fzf_action
   if !s:has_any(opts, ['sink', 'sinklist', 'sink*'])
-    let opts._action = get(g:, 'fzf_action', s:default_action)
+    let opts._action = get(g:, 'default_action')
     let opts.options .= ' --expect='.join(keys(opts._action), ',')
     function! opts.sinklist(lines) abort
       return s:common_sink(self._action, a:lines)
@@ -1056,7 +1056,7 @@ function! s:popup(opts) abort
   \ })
 endfunction
 
-let s:default_action = {
+let g:default_action = {
   \ 'ctrl-t': 'tab split',
   \ 'ctrl-s': 'split',
   \ 'ctrl-v': 'vsplit' }
