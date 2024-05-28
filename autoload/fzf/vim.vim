@@ -697,16 +697,28 @@ function! s:bufopen(lines)
   if len(a:lines) < 2
     return
   endif
-  let b = matchstr(a:lines[1], '\[\zs[0-9]*\ze\]')
-  if empty(a:lines[0]) && s:conf('buffers_jump', 0)
+
+  let pat = '\[\zs[0-9]*\ze\]'
+  if empty(a:lines[0])
+    let b = matchstr(a:lines[1], pat)
     let [t, w] = s:find_open_window(b)
     if t
       call s:jump(t, w)
-      return
+    else
+      execute 'buffer' b
     endif
+    return
   endif
-  call s:action_for(a:lines[0])
-  execute 'buffer' b
+
+  if a:lines[0] == 'ctrl-x'
+    let bs = join(map(a:lines[1:], 'matchstr(v:val, pat)'))
+    silent! execute 'bdelete' bs
+    return
+  end
+  let win = (a:lines[0] == 'ctrl-s' ? 'horizontal' : a:lines[0] == 'ctrl-t' ? 'tab' : 'vertical') . ' sbuffer'
+  for idx in range(1, len(a:lines) - 1)
+    execute win matchstr(a:lines[idx], pat)
+  endfor
 endfunction
 
 function! fzf#vim#_format_buffer(b)
@@ -743,12 +755,13 @@ function! fzf#vim#buffers(...)
     let buffers = s:buflisted()
   endif
   let sorted = sort(buffers, 's:sort_buffers')
-  let header_lines = '--header-lines=' . (bufnr('') == get(sorted, 0, 0) ? 1 : 0)
+  let header_lines = '--header='.s:red(' CTRL-X').' to unload selected buffers'
+  let expect_keys = '--expect=ctrl-s,ctrl-t,ctrl-v,ctrl-x'
   let tabstop = len(max(sorted)) >= 4 ? 9 : 8
   return s:fzf('buffers', {
   \ 'source':  map(sorted, 'fzf#vim#_format_buffer(v:val)'),
   \ 'sink*':   s:function('s:bufopen'),
-  \ 'options': ['+m', '-x', '--tiebreak=index', header_lines, '--ansi', '-d', '\t', '--with-nth', '3..', '-n', '2,1..2', '--prompt', 'Buf> ', '--query', query, '--preview-window', '+{2}-/2', '--tabstop', tabstop]
+  \ 'options': ['-m', expect_keys, '--tiebreak=index', header_lines, '--ansi', '-d', '\t', '--with-nth', '3..', '-n', '2,1..2', '--prompt', 'Buf> ', '--query', query, '--preview-window', '+{2}-/2', '--tabstop', tabstop]
   \}, args)
 endfunction
 
