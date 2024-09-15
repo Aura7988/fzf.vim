@@ -940,15 +940,43 @@ function! s:btags_source(tag_cmds)
   return map(s:align_lists(map(lines, 'split(v:val, "\t")')), 'join(v:val, "\t")')
 endfunction
 
-function! s:btags_sink(lines)
+" Position to return to with CTRL-T. Captured before fzf opens, because the
+" show key can move the window before the sink runs
+function! s:current_position()
+  let pos = getpos('.')
+  let pos[0] = bufnr('')
+  return pos
+endfunction
+
+function! s:end_tagstack_with(tagname, from_position)
+  " Builtin tag jumps push nothing when 'tagstack' is off
+  if !&tagstack || !exists('*settagstack')
+    return
+  endif
+  let winid = win_getid()
+  let stack = gettagstack(winid)
+  let item = {
+    \ 'bufnr': a:from_position[0],
+    \ 'from': a:from_position,
+    \ 'tagname': a:tagname}
+  let stack['items'] = [item]
+  return settagstack(winid, stack, 't')
+endfunction
+
+function! s:btags_sink(from, lines)
   if len(a:lines) < 2
     return
   endif
+  let tagname = ''
   call s:action_for(a:lines[0])
   let qfl = []
   for line in a:lines[1:]
-    call s:execute_silent(split(line, "\t")[2])
+    let parts = split(line, "\t")
+    call s:execute_silent(parts[2])
     call add(qfl, {'filename': expand('%'), 'lnum': line('.'), 'text': getline('.')})
+    if empty(tagname)
+      let tagname = s:strip(parts[0])
+    endif
   endfor
 
   if len(qfl) > 1
@@ -958,6 +986,9 @@ function! s:btags_sink(lines)
     call s:fill_quickfix('btags', qfl)
   else
     normal! zvzz
+  endif
+  if !empty(tagname)
+    call s:end_tagstack_with(tagname, a:from)
   endif
 endfunction
 
@@ -976,7 +1007,7 @@ function! fzf#vim#buffer_tags(query, ...)
   try
     return s:fzf('btags', {
     \ 'source':  s:btags_source(tag_cmds),
-    \ 'sink*':   s:function('s:btags_sink'),
+    \ 'sink*':   function(s:function('s:btags_sink'), [s:current_position()]),
     \ 'options': s:reverse_list(['-m', '-d', '\t', '--with-nth', '1,4..', '-n', '1', '--prompt', 'BTags> ', '--query', a:query, '--preview-window', '+{3}/2'])}, args)
   catch
     return s:warn(v:exception)
@@ -986,7 +1017,7 @@ endfunction
 " ------------------------------------------------------------------
 " Tags
 " ------------------------------------------------------------------
-function! s:tags_sink(lines)
+function! s:tags_sink(from, lines)
   if len(a:lines) < 2
     return
   endif
@@ -994,6 +1025,7 @@ function! s:tags_sink(lines)
   " Remember the current position
   let buf = bufnr('')
   let view = winsaveview()
+  let tagname = ''
 
   let qfl = []
   let [key; list] = a:lines
@@ -1015,6 +1047,9 @@ function! s:tags_sink(lines)
         endif
         call s:execute_silent(excmd)
         call add(qfl, {'filename': expand('%'), 'lnum': line('.'), 'text': getline('.')})
+        if empty(tagname)
+          let tagname = s:strip(parts[0])
+        endif
       catch /^Vim:Interrupt$/
         break
       catch
@@ -1038,6 +1073,9 @@ function! s:tags_sink(lines)
     call s:fill_quickfix('tags', qfl)
   else
     normal! ^zvzz
+  endif
+  if !empty(tagname)
+    call s:end_tagstack_with(tagname, a:from)
   endif
 endfunction
 
@@ -1080,7 +1118,7 @@ function! fzf#vim#tags(query, ...)
   let args = insert(map(tagfiles, 'fzf#shellescape(fnamemodify(v:val, ":p"))'), fzf#shellescape(a:query), 0)
   return s:fzf('tags', {
   \ 'source':  join(['perl', fzf#shellescape(s:bin.tags), join(args)]),
-  \ 'sink*':   s:function('s:tags_sink'),
+  \ 'sink*':   function(s:function('s:tags_sink'), [s:current_position()]),
   \ 'options': extend(opts, ['--nth', '1..2', '-m', '-d', '\t', '--tiebreak=begin', '--prompt', 'Tags> ', '--query', a:query])}, a:000)
 endfunction
 
