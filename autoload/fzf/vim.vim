@@ -742,6 +742,13 @@ function! s:bufopen(lines)
   elseif a:lines[0] == 'ctrl-x'
     let bs = join(map(a:lines[1:], 'matchstr(v:val, pat)'))
     silent! execute 'bdelete' bs
+  elseif a:lines[0] == 'alt-h'
+    let paths = ''
+    for idx in range(1, len(a:lines) - 1)
+      let p = matchstr(a:lines[idx], '.\{-}\ze\(:[0-9]\+\)\{,1}\t')
+      if len(p) | let paths .= ' -path='. s:escape(p) | endif
+    endfor
+    if len(paths) | silent! execute 'Flog' paths | endif
   else
     let win = (a:lines[0] == 'ctrl-s' ? 'horizontal' : a:lines[0] == 'ctrl-t' ? 'tab' : 'vertical') . ' sbuffer'
     for idx in range(1, len(a:lines) - 1)
@@ -785,7 +792,7 @@ function! fzf#vim#buffers(...)
   endif
   let sorted = sort(buffers, 's:sort_buffers')
   let header_lines = '--header='.s:red(' CTRL-X').' to unload selected buffers '.s:red(' CTRL-G').' to jump to the existing window'
-  let expect_keys = '--expect=ctrl-g,ctrl-s,ctrl-t,ctrl-v,ctrl-x'
+  let expect_keys = '--expect=ctrl-g,ctrl-s,ctrl-t,ctrl-v,ctrl-x,alt-h'
   let tabstop = len(max(sorted)) >= 4 ? 9 : 8
   return s:fzf('buffers', {
   \ 'source':  map(sorted, 'fzf#vim#_format_buffer(v:val)'),
@@ -1433,7 +1440,7 @@ function! s:commits(range, buffer_local, args)
   endif
 
   let prefix = 'git -C ' . fzf#shellescape(s:git_root) . ' '
-  let source = prefix . 'log '.s:conf('commits_log_options', '--color=always '.fzf#shellescape('--format=%C(auto)%h%d %s %C(green)%cr'))
+  let source = prefix . 'l --color'
   let current = expand('%:p')
   let managed = 0
   if !empty(current)
