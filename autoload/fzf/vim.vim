@@ -426,8 +426,25 @@ function! s:shortpath(path)
   return empty(short) ? '~'.slash : short . (short =~ escape(slash, '\').'$' ? '' : slash)
 endfunction
 
+function! s:fileopen(lines)
+  if len(a:lines) < 2
+    return
+  endif
+  if a:lines[0] != 'alt-h'
+    let win = get(get(g:, 'default_action'), a:lines[0], 'edit')
+    for idx in range(1, len(a:lines) - 1)
+      execute win s:escape(a:lines[idx])
+    endfor
+  else
+    let fl = 'Flog'
+    for idx in range(1, len(a:lines) - 1)
+      let fl .= ' -path=' . s:escape(a:lines[idx])
+    endfor
+    silent! execute fl
+  endif
+endfunction
+
 function! fzf#vim#files(dir, ...)
-  let args = {}
   let root = a:dir
   if empty(a:dir)
     let root = s:get_git_root('')
@@ -436,10 +453,13 @@ function! fzf#vim#files(dir, ...)
     return s:warn('Invalid directory')
   endif
   let dir = s:shortpath(root)
-  let args.source = 'fd -HE .git -tf'
-  let args.dir = root
-  let args.options = ['-m', '--prompt', strwidth(dir) < &columns / 2 - 20 ? dir : '> ']
-  return s:fzf('files', args, a:000)
+  let expect_keys = '--expect=ctrl-s,ctrl-t,ctrl-v,alt-h'
+  return s:fzf('files', {
+  \ 'source':  'fd -HE .git -tf',
+  \ 'dir':     root,
+  \ 'sink*':   s:function('s:fileopen'),
+  \ 'options': ['-m', expect_keys, '--prompt', strwidth(dir) < &columns / 2 - 20 ? dir : '> ']
+  \}, a:000)
 endfunction
 
 " ------------------------------------------------------------------
@@ -746,7 +766,7 @@ function! s:bufopen(lines)
     let paths = ''
     for idx in range(1, len(a:lines) - 1)
       let p = matchstr(a:lines[idx], '.\{-}\ze\(:[0-9]\+\)\{,1}\t')
-      if len(p) | let paths .= ' -path='. s:escape(p) | endif
+      if len(p) | let paths .= ' -path=' . s:escape(p) | endif
     endfor
     if len(paths) | silent! execute 'Flog' paths | endif
   else
