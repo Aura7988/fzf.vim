@@ -817,7 +817,7 @@ function! fzf#vim#buffers(...)
   return s:fzf('buffers', {
   \ 'source':  map(sorted, 'fzf#vim#_format_buffer(v:val)'),
   \ 'sink*':   s:function('s:bufopen'),
-  \ 'options': ['-m', expect_keys, '--tiebreak=index', header_lines, '--ansi', '-d', '\t', '--with-nth', '3..', '-n', '2,1..2', '--prompt', 'Buf> ', '--query', query, '--preview-window', '+{2}-/2', '--tabstop', tabstop]
+  \ 'options': ['-m', expect_keys, '--tiebreak=index', header_lines, '--ansi', '-d', '\t', '--with-nth', '3..', '-n', '2,1..2', '--prompt', 'Buf> ', '--query', query, '--preview-window', '+{2}/2', '--tabstop', tabstop]
   \}, args)
 endfunction
 
@@ -877,7 +877,7 @@ function! fzf#vim#ripgrep(query, ...)
   \    '--bind=start:unbind(change)',
   \    '--bind=change:reload:sleep 0.1; '.cmd.'{q}'.fallback,
   \    '--bind=ctrl-g:transform:[[ $FZF_PROMPT =~ Fzf ]] && echo "change-prompt(Ripgrep> )+disable-search+rebind(change)+reload:'.cmd.'{q}'.fallback.'" || echo "change-prompt(Fzf> )+enable-search+clear-query+unbind(change)"',
-  \    '--delimiter=:', '--preview-window=+{2}-/2']
+  \    '--delimiter=:', '--preview-window=+{2}/2']
   \}
   if len(args) && type(args[0]) == s:TYPE.bool
     call remove(args, 0)
@@ -948,7 +948,7 @@ function! fzf#vim#buffer_tags(query, ...)
     return s:fzf('btags', {
     \ 'source':  s:btags_source(tag_cmds),
     \ 'sink*':   s:function('s:btags_sink'),
-    \ 'options': s:reverse_list(['-m', '-d', '\t', '--with-nth', '1,4..', '-n', '1', '--prompt', 'BTags> ', '--query', a:query, '--preview-window', '+{3}-/2'])}, args)
+    \ 'options': s:reverse_list(['-m', '-d', '\t', '--with-nth', '1,4..', '-n', '1', '--prompt', 'BTags> ', '--query', a:query, '--preview-window', '+{3}/2'])}, args)
   catch
     return s:warn(v:exception)
   endtry
@@ -1329,7 +1329,7 @@ function! fzf#vim#jumps(...)
   return s:fzf('jumps', {
   \ 'source'  : map(s:jumplist, 's:jump_format(v:val)'),
   \ 'sink*'   : s:function('s:jump_sink'),
-  \ 'options' : ['+m', '-x', '--ansi', '--tiebreak=index', '--cycle', '--scroll-off=999', '--sync', '--bind', 'start:pos('.current.')+offset-middle', '--tac', '--tiebreak=begin', '--prompt', 'Jumps> ', '--preview-window', '+{3}-/2', '--tabstop=2', '--delimiter', '[:\s]+'],
+  \ 'options' : ['+m', '-x', '--ansi', '--tiebreak=index', '--cycle', '--scroll-off=999', '--sync', '--bind', 'start:pos('.current.')+offset-middle', '--tac', '--tiebreak=begin', '--prompt', 'Jumps> ', '--preview-window', '+{3}/2', '--tabstop=2', '--delimiter', '[:\s]+'],
   \ }, a:000)
 endfunction
 
