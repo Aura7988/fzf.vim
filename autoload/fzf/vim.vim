@@ -458,7 +458,7 @@ function! fzf#vim#files(dir, ...)
   \ 'source':  'fd -HE .git -tf',
   \ 'dir':     root,
   \ 'sink*':   s:function('s:fileopen'),
-  \ 'options': ['-m', expect_keys, '--prompt', strwidth(dir) < &columns / 2 - 20 ? dir : '> ']
+  \ 'options': ['--scheme', 'path', '-m', expect_keys, '--prompt', strwidth(dir) < &columns / 2 - 20 ? dir : '> ']
   \}, a:000)
 endfunction
 
