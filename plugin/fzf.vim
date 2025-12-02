@@ -1115,6 +1115,7 @@ call s:defs([
 \'command!      -bang -nargs=* BLines                           call fzf#vim#buffer_lines(<q-args>, <bang>0)',
 \'command! -bar -bang Colors                                    call fzf#vim#colors(<bang>0)',
 \'command!      -bang -nargs=+ -complete=dir Locate             call fzf#vim#locate(<q-args>, fzf#vim#with_preview(), <bang>0)',
+\'command!      -bang -nargs=? Quickfix                         call fzf#vim#quickfix(<bang>0, <args>)',
 \'command!      -bang -nargs=* -complete=custom,s:rgcomplete Rg call fzf#vim#ripgrep(<q-args>, fzf#vim#with_preview(), <bang>0)',
 \'command!      -bang -nargs=* Tags                             call fzf#vim#tags(<q-args>, fzf#vim#with_preview({ "placeholder": "--tag {2}:{-1}:{3..}" }), <bang>0)',
 \'command!      -bang -nargs=* BTags                            call fzf#vim#buffer_tags(<q-args>, fzf#vim#with_preview({ "placeholder": "{2}:{3..}" }), <bang>0)',
@@ -1132,6 +1133,10 @@ call s:defs([
 \'command! -bar -bang Maps                                      call fzf#vim#maps("n", <bang>0)',
 \'command! -bar -bang Filetypes                                 call fzf#vim#filetypes(<bang>0)',
 \'command!      -bang -nargs=* History                          call s:history(<q-args>, fzf#vim#with_preview(), <bang>0)'])
+
+autocmd FileType qf nnoremap <buffer><silent> zq :<C-u>KKQuickfix<CR>
+autocmd FileType qf nnoremap <buffer><silent> zp :<C-u>KKQuickfix -v:count1<CR>
+autocmd FileType qf nnoremap <buffer><silent> zn :<C-u>KKQuickfix v:count1<CR>
 
 function s:rgcomplete(A, L, P)
   let cmd = 'fd -d1 '

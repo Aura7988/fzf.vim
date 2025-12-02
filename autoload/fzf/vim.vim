@@ -440,11 +440,11 @@ function! s:fileopen(lines)
       execute win s:escape(a:lines[idx])
     endfor
   else
-    let fl = 'Flog'
+    let fl = 'Flog --'
     for idx in range(1, len(a:lines) - 1)
-      let fl .= ' -path=' . s:escape(a:lines[idx])
+      let fl .= ' ' . a:lines[idx]
     endfor
-    silent! execute fl
+    execute fl
   endif
 endfunction
 
@@ -772,9 +772,9 @@ function! s:bufopen(lines)
     let paths = ''
     for idx in range(1, len(a:lines) - 1)
       let p = matchstr(a:lines[idx], '.\{-}\ze\(:[0-9]\+\)\{,1}\t')
-      if len(p) | let paths .= ' -path=' . s:escape(p) | endif
+      if len(p) | let paths .= ' ' . p | endif
     endfor
-    if len(paths) | silent! execute 'Flog' paths | endif
+    if len(paths) | execute 'Flog --' paths | endif
   else
     let win = (a:lines[0] == 'ctrl-s' ? 'horizontal' : a:lines[0] == 'ctrl-t' ? 'tab' : 'vertical') . ' sbuffer'
     for idx in range(1, len(a:lines) - 1)
@@ -825,6 +825,34 @@ function! fzf#vim#buffers(...)
   \ 'sink*':   s:function('s:bufopen'),
   \ 'options': ['-m', expect_keys, '--tiebreak=index', header_lines, '--ansi', '-d', '\t', '--with-nth', '3..', '-n', '2,1..2', '--prompt', 'Buf> ', '--query', query, '--preview-window', '+{2}/2', '--tabstop', tabstop]
   \}, args)
+endfunction
+
+function! s:qf_handler(lines)
+  if len(a:lines) < 2 | return | endif
+  let wid = win_getid()
+  let cmd = get(g:default_action, a:lines[0], 'edit')
+  if winnr() | wincmd p | else | new | endif
+  for l in a:lines[1:]
+    let file = matchlist(l, '\v(.{-})\|(\d+)%(.*col (\d+).*)?\|.*')
+    call setpos("''", getpos('.'))
+    silent keepjumps keepalt execute cmd.' '.s:escape(file[1])
+    call cursor(file[2], len(file[3]) ? file[3] : 1)
+    normal! zvzz
+  endfor
+  call nvim_win_close(wid, 0)
+endfunction
+
+function! fzf#vim#quickfix(bang, count = 0)
+  if &filetype != 'qf' | return s:warn('Not a qf file') | endif
+  let [prefix, prompt] = getwininfo(win_getid())[0].loclist == 1 ? ['l', 'Loc> '] : ['c', 'Qf> ']
+  let cmd = prefix . (a:count < 0 ? 'older ' . -a:count : 'newer ' . a:count)
+  if a:count | try | silent execute cmd | catch | return s:warn(v:exception) | endtry | endif
+  return s:fzf('qf', {
+  \ 'source':  getline(1, '$'),
+  \ 'sink*':   s:function('s:qf_handler'),
+  \ 'options': ['-m', '--prompt='.prompt, '--delimiter=[| ]', '--preview-window=+{2}/2,nohidden,<120(border-bottom,up,33%)',
+  \ '--preview='.s:bash().' '.s:escape_for_bash(s:bin.preview).' {1}:{2}']
+  \}, [a:bang])
 endfunction
 
 " ------------------------------------------------------------------
