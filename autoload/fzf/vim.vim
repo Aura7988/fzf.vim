@@ -462,7 +462,7 @@ function! fzf#vim#files(dir, ...)
   \ 'source':  'fd -HE .git -tf',
   \ 'dir':     root,
   \ 'sink*':   s:function('s:fileopen'),
-  \ 'options': ['--scheme', 'path', '-m', expect_keys, '--prompt', strwidth(dir) < &columns / 2 - 20 ? dir : '> ']
+  \ 'options': ['--scheme', 'path', '-m', expect_keys, '--prompt', strwidth(dir) < &columns / 2 - 20 ? dir : '> ', '--header', s:red('• ALT-H').' to show commits']
   \}, a:000)
 endfunction
 
@@ -595,12 +595,7 @@ function! s:colors_exit(code)
 endfunction
 
 function! fzf#vim#colors(...)
-  let colors = split(globpath(&rtp, "colors/*.vim"), "\n")
-  if has('packages')
-    let colors += split(globpath(&packpath, "pack/*/opt/*/colors/*.vim"), "\n")
-  endif
-  let colors = fzf#vim#_uniq(map(colors, "fnamemodify(v:val, ':t')[:-5]"))
-
+  let colors = getcompletion('', 'color')
   " Put the current colorscheme at the top
   if exists('g:colors_name')
     let s:colors_name = g:colors_name
@@ -696,7 +691,7 @@ function! fzf#vim#command_history(...)
   return s:fzf('history-command', {
   \ 'source':  s:history_source(':'),
   \ 'sink*':   s:function('s:cmd_history_sink'),
-  \ 'options': '+m --ansi --prompt="Hist:> " --header="'.s:red(' CTRL-R').' to re-edit '.s:red(' ALT-E').' to execute in terminal" --bind=alt-e:print-query --expect=ctrl-r --tiebreak=index'}, a:000)
+  \ 'options': '--scheme=history +m --ansi --prompt="Hist:> " --header="'.s:red('• CTRL-R').' to edit '.s:red('• ALT-E').' to execute in terminal" --bind=alt-e:print-query --expect=ctrl-r --tiebreak=index'}, a:000)
 endfunction
 
 function! s:search_history_sink(lines)
@@ -707,7 +702,7 @@ function! fzf#vim#search_history(...)
   return s:fzf('history-search', {
   \ 'source':  s:history_source('/'),
   \ 'sink*':   s:function('s:search_history_sink'),
-  \ 'options': '+m --ansi --prompt="Hist/> " --header="'.s:red(' CTRL-R').' to re-edit" --expect=ctrl-r --tiebreak=index'}, a:000)
+  \ 'options': '--scheme=history +m --ansi --prompt="Hist/> " --header="'.s:red('• CTRL-R').' to edit" --expect=ctrl-r --tiebreak=index'}, a:000)
 endfunction
 
 function! fzf#vim#history(...)
@@ -817,7 +812,7 @@ function! fzf#vim#buffers(...)
     let buffers = s:buflisted()
   endif
   let sorted = sort(buffers, 's:sort_buffers')
-  let header_lines = '--header='.s:red(' CTRL-X').' to unload selected buffers '.s:red(' CTRL-G').' to jump to the existing window'
+  let header_lines = '--header='.s:red('• ALT-H').' to show commits '.s:red('• CTRL-X').' to unload '.s:red('• CTRL-G').' to jump to the window'
   let expect_keys = '--expect=ctrl-g,ctrl-s,ctrl-t,ctrl-v,ctrl-x,alt-h'
   let tabstop = len(max(sorted)) >= 4 ? 9 : 8
   return s:fzf('buffers', {
@@ -907,7 +902,7 @@ function! fzf#vim#ripgrep(query, ...)
   \ 'source':  cmd . (empty(a:query) ? "''" : a:query),
   \ 'dir':     s:get_git_root(''),
   \ 'options': ['--ansi', '--multi', '--prompt=Fzf> ',
-  \    '--header='.s:red(' CTRL-G').' to switch between Fzf/Ripgrep mode',
+  \    '--header='.s:red('• CTRL-G').' to switch between Fzf/Ripgrep mode',
   \    '--bind=start:unbind(change)',
   \    '--bind=change:reload:sleep 0.1; '.cmd.'{q}'.fallback,
   \    '--bind=ctrl-g:transform:[[ $FZF_PROMPT =~ Fzf ]] && echo "change-prompt(Ripgrep> )+disable-search+rebind(change)+reload:'.cmd.'{q}'.fallback.'" || echo "change-prompt(Fzf> )+enable-search+clear-query+unbind(change)"',
@@ -1289,17 +1284,11 @@ function! s:register_sink(lines)
   if len(a:lines) < 2
     return
   endif
-  let actions = {
-  \ ''         : 'p',
-  \ 'ctrl-g'   : 'P',
-  \ 'alt-enter': 'put ',
-  \ 'alt-g'    : 'put! ',
-  \ 'alt-e'    : 'normal @'
-  \}
+  let actions = {'': 'p', 'ctrl-g': 'P'}
   let key = a:lines[0]
   for line in a:lines[1:]
-    if key[0:2] == 'alt'
-      execute get(actions, key) . line[0]
+    if key == 'alt-e'
+      execute 'normal @' . line[0]
     else
       execute 'normal "' . line[0] . get(actions, key)
     endif
@@ -1317,8 +1306,8 @@ function! fzf#vim#registers(...)
   \ 'source':  map(split(cout, "\n")[1:], 's:format_register(v:val)'),
   \ 'sink*':   s:function('s:register_sink'),
   \ 'options': ['--ansi', '--multi', '--prompt=Registers> ',
-  \    '--header='.s:red(' CTRL-G(ALT-G) ╱ Enter(ALT-Enter)').' to put before/after (linewise) '.s:red(' ALT-E').' to execute',
-  \    '--expect=ctrl-g,alt-g,alt-enter,alt-e', '--preview', 'sed "s/^....//;s/\^J/\\n/g" <<< {}',
+  \    '--header='.s:red('• CTRL-G').' to put text before cursor '.s:red('• ALT-E').' to execute macro',
+  \    '--expect=ctrl-g,alt-e', '--preview', 'sed "s/^....//;s/\^J/\\n/g" <<< {}',
   \    '--preview-window=up,23%,border-down']
   \}
   return s:fzf('registers', opts, a:000)
@@ -1541,13 +1530,12 @@ function! s:commits(range, buffer_local, args)
   \ 'source':  source,
   \ 'sink*':   s:function('s:commits_sink'),
   \ 'options': s:reverse_list(['--ansi', '--multi', '--tiebreak=index',
-  \   '--inline-info', '--prompt', command.'> ',
-  \   '--header='.s:red(' CTRL-R').' to yank commit hashes',
+  \   '--prompt', command.'> ', '--header='.s:red('• CTRL-R').' to yank commit hashes',
   \   '--expect=ctrl-r,'.expect_keys])
   \ }
 
   if a:buffer_local
-    let options.options[-2] .= s:red('  CTRL-O').' to diff'
+    let options.options[-2] .= s:red(' • CTRL-O').' to diff'
     let options.options[-1] .= ',ctrl-o'
   endif
 
