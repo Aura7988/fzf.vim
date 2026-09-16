@@ -1151,7 +1151,6 @@ call s:defs([
 \'command!      -bang -nargs=* -complete=custom,s:rgcomplete Rg call fzf#vim#ripgrep(<q-args>, fzf#vim#with_preview(), <bang>0)',
 \'command!      -bang -nargs=* Tags                             call fzf#vim#tags(<q-args>, fzf#vim#with_preview({ "placeholder": "--tag {2}:{-1}:{3..}" }), <bang>0)',
 \'command!      -bang -nargs=* BTags                            call fzf#vim#buffer_tags(<q-args>, fzf#vim#with_preview({ "placeholder": "{2}:{3..}" }), <bang>0)',
-\'command! -bar -bang Snippets                                  call fzf#vim#snippets(<bang>0)',
 \'command! -bar -bang Commands                                  call fzf#vim#commands(<bang>0)',
 \'command! -bar -bang Jumps                                     call fzf#vim#jumps(fzf#vim#with_preview({ "placeholder": "{2..4}"}), <bang>0)',
 \'command! -bar -bang -nargs=* Marks                            call fzf#vim#marks(<q-args>, <bang>0)',

@@ -1085,30 +1085,6 @@ function! fzf#vim#tags(query, ...)
 endfunction
 
 " ------------------------------------------------------------------
-" Snippets (UltiSnips)
-" ------------------------------------------------------------------
-function! s:inject_snippet(line)
-  let snip = split(a:line, "\t")[0]
-  execute 'normal! a'.s:strip(snip)."\<c-r>=UltiSnips#ExpandSnippet()\<cr>"
-endfunction
-
-function! fzf#vim#snippets(...)
-  if !exists(':UltiSnipsEdit')
-    return s:warn('UltiSnips not found')
-  endif
-  let list = UltiSnips#SnippetsInCurrentScope()
-  if empty(list)
-    return s:warn('No snippets available here')
-  endif
-  let aligned = sort(s:align_lists(items(list)))
-  let colored = map(aligned, 's:yellow(v:val[0])."\t".v:val[1]')
-  return s:fzf('snippets', {
-  \ 'source':  colored,
-  \ 'options': '--ansi --tiebreak=index +m -n 1,.. -d "\t"',
-  \ 'sink':    s:function('s:inject_snippet')}, a:000)
-endfunction
-
-" ------------------------------------------------------------------
 " Commands
 " ------------------------------------------------------------------
 let s:tab = "\t"
