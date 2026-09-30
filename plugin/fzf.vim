@@ -1161,7 +1161,6 @@ call s:defs([
 \'command! -bar -bang Windows                                   call fzf#vim#windows(fzf#vim#with_preview({ "placeholder": "{2}" }), <bang>0)',
 \'command! -bar -bang -nargs=* -range=% -complete=file Commits  let b:fzf_winview = winsaveview() | <line1>,<line2>call fzf#vim#commits(<q-args>, fzf#vim#with_preview({ "placeholder": "" }), <bang>0)',
 \'command! -bar -bang -nargs=* -range=% BCommits                let b:fzf_winview = winsaveview() | <line1>,<line2>call fzf#vim#buffer_commits(<q-args>, fzf#vim#with_preview({ "placeholder": "" }), <bang>0)',
-\'command! -bar -bang Maps                                      call fzf#vim#maps("n", <bang>0)',
 \'command! -bar -bang Filetypes                                 call fzf#vim#filetypes(<bang>0)',
 \'command!      -bang -nargs=* History                          call s:history(<q-args>, fzf#vim#with_preview(), <bang>0)'])
 
@@ -1254,23 +1253,5 @@ augroup fzf_buffers
   autocmd BufDelete * silent! call remove(g:fzf#vim#buffers, expand('<abuf>'))
 augroup END
 
-inoremap <expr> <plug>(fzf-complete-word)        fzf#vim#complete#word()
-if s:is_win
-  inoremap <expr> <plug>(fzf-complete-path)      fzf#vim#complete#path('dir /s/b')
-  inoremap <expr> <plug>(fzf-complete-file)      fzf#vim#complete#path('dir /s/b/a:-d')
-else
-  inoremap <expr> <plug>(fzf-complete-path)      fzf#vim#complete#path("find . -path '*/\.*' -prune -o -print \| sed '1d;s:^..::'")
-  inoremap <expr> <plug>(fzf-complete-file)      fzf#vim#complete#path("find . -path '*/\.*' -prune -o -type f -print -o -type l -print \| sed 's:^..::'")
-endif
-inoremap <expr> <plug>(fzf-complete-file-ag)     fzf#vim#complete#path('ag -l -g ""')
-inoremap <expr> <plug>(fzf-complete-line)        fzf#vim#complete#line()
-inoremap <expr> <plug>(fzf-complete-buffer-line) fzf#vim#complete#buffer_line()
-
-nnoremap <silent> <plug>(fzf-maps-n) :<c-u>call fzf#vim#maps('n', 0)<cr>
-inoremap <silent> <plug>(fzf-maps-i) <c-o>:call fzf#vim#maps('i', 0)<cr>
-xnoremap <silent> <plug>(fzf-maps-x) :<c-u>call fzf#vim#maps('x', 0)<cr>
-onoremap <silent> <plug>(fzf-maps-o) <c-c>:<c-u>call fzf#vim#maps('o', 0)<cr>
-
 let &cpo = s:cpo_save
 unlet s:cpo_save
-
