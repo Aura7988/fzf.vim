@@ -399,7 +399,7 @@ endfunction
 
 function! s:fill_quickfix(name, list)
   if len(a:list) > 1
-    let Handler = s:conf('listproc_'.a:name, s:conf('listproc', function('fzf#vim#listproc#quickfix')))
+    let Handler = s:conf('listproc_'.a:name, s:conf('listproc', function('fzf#vim#listproc#location')))
     call call(Handler, [a:list], {})
     return 1
   endif
@@ -1596,117 +1596,6 @@ function! fzf#vim#buffer_commits(...) range
     unlet b:fzf_winview
   endif
   return s:commits(s:given_range(a:firstline, a:lastline), 1, a:000)
-endfunction
-
-" ----------------------------------------------------------------------------
-" fzf#vim#complete - completion helper
-" ----------------------------------------------------------------------------
-inoremap <silent> <Plug>(-fzf-complete-trigger) <c-o>:call <sid>complete_trigger()<cr>
-
-function! s:pluck(dict, key, default)
-  return has_key(a:dict, a:key) ? remove(a:dict, a:key) : a:default
-endfunction
-
-function! s:complete_trigger()
-  let opts = copy(s:opts)
-  call s:prepend_opts(opts, ['+m', '-q', s:query])
-  let opts['sink*'] = s:function('s:complete_insert')
-  let s:reducer = s:pluck(opts, 'reducer', s:function('s:first_line'))
-  call fzf#run(opts)
-endfunction
-
-" The default reducer
-function! s:first_line(lines)
-  return a:lines[0]
-endfunction
-
-function! s:complete_insert(lines)
-  if empty(a:lines)
-    return
-  endif
-
-  let chars = strchars(s:query)
-  if     chars == 0 | let del = ''
-  elseif chars == 1 | let del = '"_x'
-  else              | let del = (chars - 1).'"_dvh'
-  endif
-
-  let data = call(s:reducer, [a:lines])
-  let ve = &ve
-  set ve=
-  execute 'normal!' ((s:eol || empty(chars)) ? '' : 'h').del.(s:eol ? 'a': 'i').data
-  let &ve = ve
-  if mode() =~ 't'
-    call feedkeys('a', 'n')
-  elseif has('nvim')
-    execute "normal! \<esc>la"
-  else
-    call feedkeys("\<Plug>(-fzf-complete-finish)")
-  endif
-endfunction
-
-nnoremap <silent> <Plug>(-fzf-complete-finish) a
-inoremap <silent> <Plug>(-fzf-complete-finish) <c-o>l
-
-function! s:eval(dict, key, arg)
-  if has_key(a:dict, a:key) && type(a:dict[a:key]) == s:TYPE.funcref
-    let ret = copy(a:dict)
-    let ret[a:key] = call(a:dict[a:key], [a:arg])
-    return ret
-  endif
-  return a:dict
-endfunction
-
-function! fzf#vim#complete(...)
-  if a:0 == 0
-    let s:opts = fzf#wrap()
-  elseif type(a:1) == s:TYPE.dict
-    let s:opts = copy(a:1)
-  elseif type(a:1) == s:TYPE.string
-    let s:opts = extend({'source': a:1}, get(a:000, 1, fzf#wrap()))
-  else
-    echoerr 'Invalid argument: '.string(a:000)
-    return ''
-  endif
-  for s in ['sink', 'sink*']
-    if has_key(s:opts, s)
-      call remove(s:opts, s)
-    endif
-  endfor
-
-  let eol = col('$')
-  let ve = &ve
-  set ve=all
-  let s:eol = col('.') == eol
-  let &ve = ve
-
-  let Prefix = s:pluck(s:opts, 'prefix', '\k*$')
-  if col('.') == 1
-    let s:query = ''
-  else
-    let full_prefix = getline('.')[0 : col('.')-2]
-    if type(Prefix) == s:TYPE.funcref
-      let s:query = call(Prefix, [full_prefix])
-    else
-      let s:query = matchstr(full_prefix, Prefix)
-    endif
-  endif
-  let s:opts = s:eval(s:opts, 'source', s:query)
-  let s:opts = s:eval(s:opts, 'options', s:query)
-  let s:opts = s:eval(s:opts, 'extra_options', s:query)
-  if has_key(s:opts, 'extra_options')
-    call s:merge_opts(s:opts, remove(s:opts, 'extra_options'))
-  endif
-  if has_key(s:opts, 'options')
-    if type(s:opts.options) == s:TYPE.list
-      call add(s:opts.options, '--no-expect')
-    else
-      let s:opts.options .= ' --no-expect'
-    endif
-  endif
-
-  call feedkeys("\<Plug>(-fzf-complete-trigger)")
-  return ''
 endfunction
 
 " ------------------------------------------------------------------
