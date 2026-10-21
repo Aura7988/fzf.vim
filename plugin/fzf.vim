@@ -940,6 +940,12 @@ function! s:execute_term(dict, command, temps) abort
       let fzf.temps.batchfile = s:fzf_tempname().'.bat'
       call s:writefile(s:wrap_cmds(a:command), fzf.temps.batchfile)
       let command = fzf.temps.batchfile
+    elseif has('nvim') && &title && a:command =~ '[[:cntrl:]]'
+      " Neovim puts the command in the buffer name, which can end up raw in
+      " the terminal title (#4941)
+      let fzf.temps.shellscript = s:fzf_tempname()
+      call s:writefile([a:command], fzf.temps.shellscript)
+      let command = 'sh '.fzf#shellescape(fzf.temps.shellscript)
     else
       let command = a:command
     endif
@@ -1148,7 +1154,7 @@ call s:defs([
 \'command! -bar -bang Colors                                    call fzf#vim#colors(<bang>0)',
 \'command!      -bang -nargs=+ -complete=dir Locate             call fzf#vim#locate(<q-args>, fzf#vim#with_preview(), <bang>0)',
 \'command!      -bang -nargs=? Quickfix                         call fzf#vim#quickfix(<bang>0, <args>)',
-\'command!      -bang -nargs=* -complete=custom,s:rgcomplete Rg call fzf#vim#ripgrep(<q-args>, fzf#vim#with_preview(), <bang>0)',
+\'command!      -bang -nargs=* -complete=file Rg                call fzf#vim#ripgrep(<q-args>, fzf#vim#with_preview(), <bang>0)',
 \'command!      -bang -nargs=* Tags                             call fzf#vim#tags(<q-args>, fzf#vim#with_preview({ "placeholder": "--tag {2}:{-1}:{3..}" }), <bang>0)',
 \'command!      -bang -nargs=* BTags                            call fzf#vim#buffer_tags(<q-args>, fzf#vim#with_preview({ "placeholder": "{2}:{3..}" }), <bang>0)',
 \'command! -bar -bang Commands                                  call fzf#vim#commands(<bang>0)',
@@ -1164,25 +1170,6 @@ call s:defs([
 \'command! -bar -bang Filetypes                                 call fzf#vim#filetypes(<bang>0)',
 \'command!      -bang -nargs=* History                          call s:history(<q-args>, fzf#vim#with_preview(), <bang>0)'])
 
-autocmd FileType qf nnoremap <buffer><silent> zq :<C-u>KKQuickfix<CR>
-autocmd FileType qf nnoremap <buffer><silent> zp :<C-u>KKQuickfix -v:count1<CR>
-autocmd FileType qf nnoremap <buffer><silent> zn :<C-u>KKQuickfix v:count1<CR>
-
-function s:rgcomplete(A, L, P)
-  let cmd = 'fd -d1 '
-  if len(a:A)
-    let n = strridx(a:A, '/')
-    if a:A[n+1] == '.' | let cmd .= '-H ' | endif
-    if n == -1
-      let cmd .= a:A
-    else
-      let dir = a:A[:n]
-      let cmd = 'cd '.dir.' && '.cmd.a:A[n+1:].' | sed "s:^:'.dir.':"'
-    endif
-  endif
-  return system(cmd)
-endfunction
-
 function! s:history(arg, extra, bang)
   let bang = a:bang || a:arg[len(a:arg)-1] == '!'
   if a:arg[0] == ':'
@@ -1192,10 +1179,6 @@ function! s:history(arg, extra, bang)
   else
     call fzf#vim#history(a:extra, bang)
   endif
-endfunction
-
-function! fzf#complete(...)
-  return call('fzf#vim#complete', a:000)
 endfunction
 
 if (has('nvim') || has('terminal') && has('patch-8.0.995')) && (s:conf('statusline', 1) || s:conf('nvim_statusline', 1))
